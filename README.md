@@ -35,6 +35,23 @@ The system is fully containerized using Docker Compose.
 
 ---
 
+## CI/CD & Engineering Excellence
+
+The system implements a production-grade **CI/CD Pipeline** via GitHub Actions to ensure stability, safety, and performance.
+
+### 🛡️ Automated Quality Assurance
+- **Backend Pipeline**: 
+  - Automated unit and integration testing via **Pytest**.
+  - Verification of the **Clinical Quality Gate** logic and database models.
+  - Asynchronous task processing validation.
+- **Frontend Pipeline**:
+  - Strict **ESLint** enforcement for React best practices.
+  - **TypeScript** type-safety verification across all data structures.
+  - **Next.js Production Build** validation on every push to prevent runtime regressions.
+- **Environmental Consistency**: Docker-based build verification ensures that the system runs identically across local development and the CI runner.
+
+---
+
 ## Key Design Principles
 
 This system is designed as a **clinical tool, not a demo**.
@@ -208,6 +225,23 @@ Example input:
 * Status: `needs_review`
 * Flag: dangerous dosage detected
 * UI highlights issue and requires correction
+
+### CI/CD Verification (Local)
+
+To run the same checks performed by the GitHub Actions pipeline locally:
+
+#### Backend Tests
+```bash
+cd backend
+PYTHONPATH=. python -m pytest tests/ -v
+```
+
+#### Frontend Validation
+```bash
+cd frontend
+npm run lint
+npm run build
+```
 
 ---
 
