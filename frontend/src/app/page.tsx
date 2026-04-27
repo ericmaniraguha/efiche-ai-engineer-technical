@@ -99,7 +99,12 @@ export default function Home() {
       setLiveTranscript("");
 
       // Initialize Web Speech API
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      interface SpeechRecognitionWindow extends Window {
+        SpeechRecognition?: new () => SpeechRecognitionInstance;
+        webkitSpeechRecognition?: new () => SpeechRecognitionInstance;
+      }
+      const win = window as SpeechRecognitionWindow;
+      const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
         if (recognitionRef.current) {
