@@ -1,0 +1,106 @@
+services:
+  # Database
+  db:
+    image: postgres:15-alpine
+    container_name: efiche-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-efiche}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-efiche_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-efiche_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  # pgAdmin - Web Interface for Database
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: efiche-pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@admin.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    depends_on:
+      - db
+
+  # Redis for Celery
+  redis:
+    image: redis:7-alpine
+    container_name: efiche-redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: efiche-backend
+    restart: always
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+
+  # Celery Worker
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: efiche-worker
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    restart: always
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    environment:
+      - POSTGRES_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+      - backend
+
+  # Frontend Next.js (Dev Mode)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: efiche-frontend
+    command: npm run dev
+    restart: always
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      - backend
+
+  # RedisInsight UI
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: efiche-redisinsight
+    restart: always
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:

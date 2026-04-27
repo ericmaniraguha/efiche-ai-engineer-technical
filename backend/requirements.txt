@@ -1,0 +1,47 @@
+# =========================
+# Web Framework
+# =========================
+fastapi              # Main web framework for building APIs (high-performance, async-ready)
+uvicorn              # ASGI server to run FastAPI applications
+
+# =========================
+# Data Validation & Settings
+# =========================
+pydantic             # Data validation and schema definitions
+pydantic-settings    # Manage environment variables and app configuration cleanly
+
+# =========================
+# Database Layer
+# =========================
+sqlalchemy           # ORM for database modeling and queries
+alembic              # Database migrations tool (version control for DB schema)
+psycopg2-binary      # PostgreSQL driver for Python (used by SQLAlchemy)
+
+# =========================
+# Environment Management
+# =========================
+python-dotenv        # Load environment variables from .env file
+
+# =========================
+# AI / ML / Speech Processing
+# =========================
+openai               # OpenAI API client (GPT models, embeddings, etc.)
+SpeechRecognition    # Classic speech recognition library (used by local_asr.py)
+pydub                # Audio processing (format conversion, slicing, manipulation)
+
+# =========================
+# Background Jobs / Messaging
+# =========================
+celery               # Distributed task queue for background processing
+redis                # In-memory datastore used as Celery broker/backend
+
+# =========================
+# Testing & HTTP
+# =========================
+pytest               # Testing framework for unit and integration tests
+httpx                # Modern HTTP client for async API testing and requests
+
+# =========================
+# File Upload Handling
+# =========================
+python-multipart     # Handles file uploads in FastAPI (form-data support)

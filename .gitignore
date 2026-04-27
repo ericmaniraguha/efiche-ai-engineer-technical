@@ -1,0 +1,49 @@
+# Dependency directories
+node_modules/
+frontend/node_modules/
+jspm_packages/
+venv/
+.venv/
+env/
+.env
+.env.local
+.env.*.local
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker
+.docker/
+# Ignore local DB data if mounted as volume outside container
+pgdata/
+redisdata/
+
+# OS Files
+Thumbs.db
+desktop.ini
+
+# Audio/Temp files from processing
+backend/temp_audio/
+*.wav
+*.mp3
+*.m4a
