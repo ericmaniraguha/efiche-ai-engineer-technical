@@ -59,8 +59,8 @@ def assess_extraction_quality(
             missing_fields.append(field)
             
     if missing_fields:
-        if len(missing_fields) >= len(expected_fields) - 1:
-            reasons.append(f"Almost all expected clinical fields are missing: {', '.join(missing_fields)}.")
+        if len(missing_fields) == len(expected_fields):
+            reasons.append(f"All expected clinical fields are missing: {', '.join(missing_fields)}.")
             status = "insufficient"
         else:
             reasons.append(f"Missing expected fields: {', '.join(missing_fields)}.")
