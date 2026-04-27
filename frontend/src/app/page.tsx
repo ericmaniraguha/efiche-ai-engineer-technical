@@ -1,18 +1,45 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { MOCK_CONSULTATIONS, MockConsultation } from "./mockData";
+import { useState, useRef, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { MOCK_CONSULTATIONS } from "./mockData";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
+interface AIVerification {
+  dangerous_flags?: string[];
+  unsupported_claims?: string[];
+}
+
+interface ClinicalData {
+  diagnosis?: string;
+  medications?: string[];
+  chief_complaint?: string;
+  follow_up?: string;
+  ai_verification?: AIVerification;
+}
+
+interface Consultation {
+  id: string;
+  status: string;
+  diagnosis?: string;
+  meds?: string[];
+  created_at: string;
+  date?: string;
+  patient_init?: string;
+  raw_transcript?: string;
+  clinical_data?: ClinicalData;
+  wer_score?: number;
+  clinical_score?: number;
+}
 
 export default function Home() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<string | null>(null);
-  const [activeData, setActiveData] = useState<any>(null);
-  const [showDetailsId, setShowDetailsId] = useState<string | null>(null);
+  const [activeData, setActiveData] = useState<ClinicalData | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState("rw");
   const [isUploading, setIsUploading] = useState(false);
-  const [realConsultations, setRealConsultations] = useState<any[]>([]);
+  const [realConsultations, setRealConsultations] = useState<Consultation[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isRecording, setIsRecording] = useState(false);
@@ -22,7 +49,21 @@ export default function Home() {
   const recognitionRef = useRef<any>(null);
   const chunksRef = useRef<BlobPart[]>([]);
 
+  // Fetch real consultations from backend
+  const fetchConsultations = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/consultations/`);
+      if (!response.ok) throw new Error("Fetch failed");
+      const data = await response.json();
+      setRealConsultations(data);
+    } catch {
+      console.error("Failed to fetch consultations");
+    }
+  }, []);
 
+  useEffect(() => {
+    fetchConsultations();
+  }, [fetchConsultations]);
 
   const startRecording = async () => {
     try {
@@ -32,7 +73,8 @@ export default function Home() {
       setLiveTranscript("");
 
       // Initialize Web Speech API for live visual transcription
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const win = window as any;
+      const SpeechRecognition = win.SpeechRecognition || win.webkitSpeechRecognition;
       if (SpeechRecognition) {
         recognitionRef.current = new SpeechRecognition();
         recognitionRef.current.continuous = true;
@@ -68,7 +110,7 @@ export default function Home() {
               await response.json();
               setActiveStatus('processing');
               fetchConsultations();
-            } catch (error) {
+            } catch {
               alert("Upload failed.");
             } finally {
               setIsUploading(false);
@@ -79,23 +121,23 @@ export default function Home() {
       mediaRecorderRef.current.start();
       setIsRecording(true);
       setRecordingTime(0);
-    } catch (err) {
+    } catch {
       alert("Microphone access denied or error occurred.");
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (e) {}
+        } catch { /* ignore stop error */ }
       }
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       setIsRecording(false);
     }
-  };
+  }, [isRecording]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -105,23 +147,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isRecording]);
 
-
-
-  // Fetch real consultations from backend
-  const fetchConsultations = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/v1/consultations/`);
-      const data = await response.json();
-      setRealConsultations(data);
-    } catch (error) {
-      console.error("Failed to fetch consultations");
-    }
-  };
-
-  useEffect(() => {
-    fetchConsultations();
-  }, []);
-
   // Poll for status updates
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -129,11 +154,11 @@ export default function Home() {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`${API_URL}/api/v1/consultations/`);
-          const all = await res.json();
-          const current = all.find((c: any) => c.id === activeId);
+          const all: Consultation[] = await res.json();
+          const current = all.find((c) => c.id === activeId);
           if (current && current.status !== 'processing') {
             setActiveStatus(current.status);
-            setActiveData(current.clinical_data);
+            setActiveData(current.clinical_data || null);
             fetchConsultations(); // Update list
           }
         } catch (e) {
@@ -142,7 +167,7 @@ export default function Home() {
       }, 3000);
     }
     return () => clearInterval(interval);
-  }, [activeId, activeStatus]);
+  }, [activeId, activeStatus, fetchConsultations]);
 
   const handleStartConsultation = async () => {
     try {
@@ -154,7 +179,7 @@ export default function Home() {
       setActiveStatus('pending');
       setActiveData(null);
       fetchConsultations();
-    } catch (error) {
+    } catch {
       alert("Failed to start consultation.");
     }
   };
@@ -175,21 +200,10 @@ export default function Home() {
       await response.json();
       setActiveStatus('processing');
       fetchConsultations();
-    } catch (error) {
+    } catch {
       alert("Upload failed.");
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleTestClick = async (msg: string) => {
-    console.log(`Action: ${msg}`);
-    try {
-      const response = await fetch(`${API_URL}/health`);
-      const data = await response.json();
-      alert(`Success! Backend says: ${JSON.stringify(data)}`);
-    } catch (error) {
-      alert("Failed to connect to backend.");
     }
   };
 
@@ -217,25 +231,25 @@ export default function Home() {
       }}>
         <h1 className="gradient-text" style={{ fontSize: "1.6rem", fontWeight: "900", letterSpacing: "-0.03em", margin: 0 }}>eFiche AI</h1>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
-          <a href="#features" onClick={(e) => scrollToSection(e, "features")} style={{ fontWeight: "600", fontSize: "0.9rem", textDecoration: "none", color: "inherit", padding: "0.5rem" }}>Features</a>
-          <a href="#about" onClick={(e) => scrollToSection(e, "about")} style={{ fontWeight: "600", fontSize: "0.9rem", textDecoration: "none", color: "inherit", padding: "0.5rem" }}>About</a>
+          <Link href="#features" onClick={(e) => scrollToSection(e, "features")} style={{ fontWeight: "600", fontSize: "0.9rem", textDecoration: "none", color: "inherit", padding: "0.5rem" }}>Features</Link>
+          <Link href="#about" onClick={(e) => scrollToSection(e, "about")} style={{ fontWeight: "600", fontSize: "0.9rem", textDecoration: "none", color: "inherit", padding: "0.5rem" }}>About</Link>
           <button className="btn-primary btn-mobile-full" style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem" }} onClick={handleStartConsultation}>
             Start New
           </button>
-          <a href="/dashboard" className="btn-primary btn-mobile-full" style={{ 
+          <Link href="/dashboard" className="btn-primary btn-mobile-full" style={{ 
             padding: "0.5rem 1.25rem", 
             fontSize: "0.85rem", 
             background: "none", 
             color: "var(--primary)", 
-            border: "1px solid var(--primary)" 
+            border: "1px solid var(--primary)",
+            textDecoration: "none"
           }}>
             Dashboard
-          </a>
+          </Link>
         </div>
       </nav>
 
       {/* Hero Section */}
-      {/* Hero Section / Action Area */}
       <section style={{ textAlign: "center", maxWidth: "850px", margin: "0 auto 4rem", padding: "0 0.5rem" }}>
         <h2 className="hero-title" style={{ fontSize: "clamp(2.5rem, 8vw, 5rem)", color: "#000000", marginBottom: "1.5rem", lineHeight: "1.1", fontWeight: "900", letterSpacing: "-0.05em" }}>
           Clinical <span className="gradient-text">Transcription</span> QC.
@@ -263,7 +277,7 @@ export default function Home() {
             <div style={{ display: "grid", gap: "1.5rem" }}>
               <div style={{ background: "#f8fafc", padding: "1.5rem", borderRadius: "1rem", border: "1px solid #e2e8f0" }}>
                 <p style={{ fontSize: "0.85rem", fontWeight: "700", color: "#64748b", marginBottom: "0.5rem" }}>DIAGNOSIS</p>
-                <p style={{ fontSize: "1.2rem", fontWeight: "800", color: "#0f172a" }}>{activeData?.diagnosis || "No diagnosis detected"}</p>
+                <div style={{ fontSize: "1.2rem", fontWeight: "800", color: "#0f172a" }}>{activeData?.diagnosis || "No diagnosis detected"}</div>
               </div>
 
               <div style={{ background: "#f8fafc", padding: "1.5rem", borderRadius: "1rem", border: "1px solid #e2e8f0" }}>
@@ -325,6 +339,9 @@ export default function Home() {
 
                 <div 
                   onClick={() => fileInputRef.current?.click()}
+                  onKeyDown={(e) => { if (e.key === 'Enter') fileInputRef.current?.click(); }}
+                  role="button"
+                  tabIndex={0}
                   style={{
                     border: "2px dashed #cbd5e1",
                     borderRadius: "1rem",
@@ -335,8 +352,6 @@ export default function Home() {
                     opacity: isUploading ? 0.6 : 1,
                     pointerEvents: isUploading ? "none" : "auto",
                   }}
-                  onMouseOver={(e) => { e.currentTarget.style.borderColor = "#0284c7"; e.currentTarget.style.background = "#f0f9ff"; }}
-                  onMouseOut={(e) => { e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.background = "#f8fafc"; }}
                 >
                   <input 
                     type="file" 
@@ -355,7 +370,7 @@ export default function Home() {
                   {!isUploading && (
                     <>
                       <p style={{ color: "#64748b", fontWeight: "500", marginBottom: "1.5rem" }}>
-                        Click or drag & drop to upload your audio
+                        Click or drag &amp; drop to upload your audio
                       </p>
                       
                       <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
@@ -413,7 +428,7 @@ export default function Home() {
                       {liveTranscript && (
                         <div style={{ marginTop: "1.5rem", marginBottom: "1.5rem", padding: "1.5rem", background: "#f8fafc", borderRadius: "1rem", border: "1px solid #e2e8f0", maxWidth: "100%", width: "100%", textAlign: "left", boxShadow: "inset 0 2px 4px rgba(0,0,0,0.02)" }}>
                           <p style={{ fontSize: "0.8rem", fontWeight: "700", color: "#64748b", marginBottom: "0.5rem", textTransform: "uppercase" }}>Live Transcription Preview</p>
-                          <p style={{ fontSize: "1.1rem", color: "#0f172a", fontStyle: "italic", lineHeight: "1.6" }}>"{liveTranscript}"</p>
+                          <div style={{ fontSize: "1.1rem", color: "#0f172a", fontStyle: "italic", lineHeight: "1.6" }}>&quot;{liveTranscript}&quot;</div>
                         </div>
                       )}
 
@@ -430,7 +445,7 @@ export default function Home() {
                           cursor: "pointer",
                         }}
                       >
-                        ⏹ Stop & Upload
+                        ⏹ Stop &amp; Upload
                       </button>
                     </div>
                   )}
@@ -448,12 +463,12 @@ export default function Home() {
             )}
 
             <div style={{ marginTop: "2rem", paddingTop: "1.5rem", display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
-              <p style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "600", maxWidth: "400px" }}>
+              <div style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: "600", maxWidth: "400px" }}>
                 <strong>Note:</strong> We accept audio and video records. Supported formats include MP3, MP4, WAV, PDF, and JPG.
-              </p>
-              <p style={{ color: "#0f172a", fontWeight: "800", fontSize: "0.95rem", marginTop: "1rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              </div>
+              <div style={{ color: "#0f172a", fontWeight: "800", fontSize: "0.95rem", marginTop: "1rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 Or start recording instantly
-              </p>
+              </div>
               <button 
                 onClick={startRecording}
                 disabled={isUploading || isRecording}
@@ -466,14 +481,13 @@ export default function Home() {
         )}
       </section>
 
-
       {/* Recent Activity Preview */}
       <section style={{ maxWidth: "1000px", margin: "0 auto 4rem", padding: "0 1rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
           <h3 style={{ fontSize: "1.5rem", fontWeight: "800", color: "#0f172a" }}>Recent Activity</h3>
-          <a href="/dashboard" style={{ color: "#0284c7", fontWeight: "700", textDecoration: "none", fontSize: "0.9rem", background: "#f0f9ff", padding: "0.5rem 1rem", borderRadius: "2rem" }}>
+          <Link href="/dashboard" style={{ color: "#0284c7", fontWeight: "700", textDecoration: "none", fontSize: "0.9rem", background: "#f0f9ff", padding: "0.5rem 1rem", borderRadius: "2rem" }}>
             View Full Dashboard →
-          </a>
+          </Link>
         </div>
         
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -499,7 +513,7 @@ export default function Home() {
                 }}>
                   {item.status.replace('_', ' ')}
                 </span>
-                <a href="/dashboard" style={{ color: "#94a3b8", fontWeight: "800", fontSize: "1.2rem", textDecoration: "none", padding: "0.5rem" }}>›</a>
+                <Link href="/dashboard" style={{ color: "#94a3b8", fontWeight: "800", fontSize: "1.2rem", textDecoration: "none", padding: "0.5rem" }}>›</Link>
               </div>
             </div>
           ))}

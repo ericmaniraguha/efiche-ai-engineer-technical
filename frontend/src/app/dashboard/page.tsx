@@ -1,33 +1,67 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { MOCK_CONSULTATIONS } from "../mockData";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
+interface AIVerification {
+  dangerous_flags?: string[];
+  unsupported_claims?: string[];
+}
+
+interface ClinicalData {
+  diagnosis?: string;
+  medications?: string | string[];
+  chief_complaint?: string;
+  follow_up?: string;
+  ai_verification?: AIVerification;
+}
+
+interface Consultation {
+  id: string;
+  status: string;
+  diagnosis?: string;
+  meds?: string[];
+  created_at: string;
+  raw_transcript?: string;
+  clinical_data?: ClinicalData;
+  wer_score?: number;
+  clinical_score?: number;
+}
+
+interface EditData {
+  diagnosis: string;
+  medications: string;
+  chief_complaint: string;
+  follow_up: string;
+}
+
 export default function ReportsDashboard() {
-  const [realConsultations, setRealConsultations] = useState<any[]>([]);
+  const [realConsultations, setRealConsultations] = useState<Consultation[]>([]);
   const [showDetailsId, setShowDetailsId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<{ diagnosis: string, medications: string, chief_complaint: string, follow_up: string } | null>(null);
+  const [editData, setEditData] = useState<EditData | null>(null);
 
   const selectedConsultation = realConsultations.find(c => c.id === showDetailsId) || MOCK_CONSULTATIONS.find(c => c.id === showDetailsId);
 
   useEffect(() => {
     if (selectedConsultation) {
+      const clinical = selectedConsultation.clinical_data;
       setEditData({
-        diagnosis: selectedConsultation.clinical_data?.diagnosis || selectedConsultation.diagnosis || "",
-        medications: Array.isArray(selectedConsultation.clinical_data?.medications) 
-            ? selectedConsultation.clinical_data.medications.join(", ") 
-            : (selectedConsultation.clinical_data?.medications || selectedConsultation.meds || []).toString(),
-        chief_complaint: selectedConsultation.clinical_data?.chief_complaint || "",
-        follow_up: selectedConsultation.clinical_data?.follow_up || ""
+        diagnosis: clinical?.diagnosis || selectedConsultation.diagnosis || "",
+        medications: Array.isArray(clinical?.medications) 
+            ? clinical.medications.join(", ") 
+            : (clinical?.medications || selectedConsultation.meds || []).toString(),
+        chief_complaint: clinical?.chief_complaint || "",
+        follow_up: clinical?.follow_up || ""
       });
     } else {
       setEditData(null);
     }
-  }, [showDetailsId]);
+  }, [selectedConsultation]); // Fixed dependency
 
-  const fetchConsultations = async () => {
+  const fetchConsultations = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/api/v1/consultations/`);
       if (!response.ok) throw new Error("Fetch failed");
@@ -36,13 +70,13 @@ export default function ReportsDashboard() {
     } catch (error) {
       console.error("Failed to fetch consultations:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchConsultations();
     const interval = setInterval(fetchConsultations, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchConsultations]);
 
   const handleUpdateConsultation = async (id: string) => {
     if (!editData) return;
@@ -60,7 +94,7 @@ export default function ReportsDashboard() {
       } : c));
       setShowDetailsId(null);
       alert("✅ Consultation verified and approved!");
-    } catch (error) {
+    } catch {
       alert("Failed to update consultation.");
     }
   };
@@ -86,7 +120,7 @@ export default function ReportsDashboard() {
         gap: "1rem"
       }}>
         <h1 className="gradient-text" style={{ fontSize: "1.6rem", fontWeight: "900", letterSpacing: "-0.03em", margin: 0 }}>eFiche AI</h1>
-        <a href="/" style={{ fontWeight: "700", fontSize: "0.9rem", color: "var(--primary)", textDecoration: "none" }}>← Upload Center</a>
+        <Link href="/" style={{ fontWeight: "700", fontSize: "0.9rem", color: "var(--primary)", textDecoration: "none" }}>← Upload Center</Link>
       </nav>
 
       <header style={{ marginBottom: "2.5rem" }}>
@@ -97,7 +131,7 @@ export default function ReportsDashboard() {
       <div className="grid-responsive" style={{ marginBottom: "6rem" }}>
         {realConsultations.map((item) => {
           const aiFlags = item.clinical_data?.ai_verification || {};
-          const hasDangerous = aiFlags.dangerous_flags?.length > 0;
+          const hasDangerous = (aiFlags.dangerous_flags?.length ?? 0) > 0;
           
           return (
             <div key={item.id} className="white-card animate-fade-in" style={{ 
@@ -117,9 +151,9 @@ export default function ReportsDashboard() {
               
               <div style={{ background: "#f8fafc", padding: "1rem", borderRadius: "0.75rem", border: "1px solid #e2e8f0" }}>
                 <p style={{ fontSize: "0.75rem", fontWeight: "800", color: "#64748b", marginBottom: "0.25rem", textTransform: "uppercase" }}>Diagnosis</p>
-                <p style={{ fontWeight: "700", color: "#0f172a", fontSize: "1rem" }}>
+                <div style={{ fontWeight: "700", color: "#0f172a", fontSize: "1rem" }}>
                   {item.clinical_data?.diagnosis || <span style={{ color: '#ef4444' }}>[Missing]</span>}
-                </p>
+                </div>
               </div>
 
               <div style={{ display: "flex", gap: "1.5rem" }}>
@@ -182,10 +216,10 @@ export default function ReportsDashboard() {
               <div className="pane" style={{ flex: 1, borderRight: "1px solid #e2e8f0", padding: "1.5rem", background: "#fcfcfc" }}>
                 <h5 style={{ fontSize: "0.8rem", fontWeight: "800", color: "#64748b", marginBottom: "1rem", textTransform: "uppercase" }}>🎙️ Clinical Audio Transcript</h5>
                 <div style={{ background: "#fff", padding: "1.25rem", borderRadius: "0.75rem", border: "1px solid #e2e8f0", lineHeight: "1.6", color: "#334155", fontStyle: "italic" }}>
-                  "{selectedConsultation.raw_transcript || "Transcript not available."}"
+                  &quot;{selectedConsultation.raw_transcript || "Transcript not available."}&quot;
                 </div>
 
-                {selectedConsultation.clinical_data?.ai_verification?.dangerous_flags?.length > 0 && (
+                {selectedConsultation.clinical_data?.ai_verification?.dangerous_flags && selectedConsultation.clinical_data.ai_verification.dangerous_flags.length > 0 && (
                   <div style={{ marginTop: "1.5rem", background: "#fef2f2", padding: "1.25rem", borderRadius: "0.75rem", border: "1px solid #fecaca" }}>
                     <h5 style={{ fontSize: "0.8rem", fontWeight: "900", color: "#b91c1c", marginBottom: "0.5rem" }}>⚠️ AI SAFETY ALERTS</h5>
                     <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.9rem", color: "#991b1b" }}>
