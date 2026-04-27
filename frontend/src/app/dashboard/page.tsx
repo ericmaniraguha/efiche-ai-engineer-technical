@@ -76,9 +76,7 @@ export default function ReportsDashboard() {
           follow_up: editData.follow_up,
         },
       } : c));
-      setShowDetailsId(null);
-      setEditOverrides({});
-      alert("✅ Consultation verified and approved!");
+      alert("Consultation verified and approved!");
     } catch {
       alert("Failed to update consultation.");
     }
