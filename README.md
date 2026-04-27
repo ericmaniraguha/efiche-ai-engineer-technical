@@ -1,5 +1,15 @@
 # eFiche AI: Clinical Transcription Quality Control System
 
+![CI/CD Pipeline](https://github.com/ericmaniraguha/efiche-ai-engineer-technical/actions/workflows/ci.yml/badge.svg)
+
+## Submission Overview
+
+- **Design Document** → [architecture.md](file:///g:/Job%20Applied/eFiche%20AI%20Engineer/architecture.md)
+- **Cost Analysis** → [cost_calculation_and_routing.md](file:///g:/Job%20Applied/eFiche%20AI%20Engineer/cost_calculation_and_routing.md)
+- **GPT-4o Limitations** → [gpt_restrictions.md](file:///g:/Job%20Applied/eFiche%20AI%20Engineer/gpt_restrictions.md)
+
+---
+
 eFiche AI is a production-grade clinical transcription system designed for real-world healthcare environments. It enables nurses to capture consultations, transcribe multilingual speech (Kinyarwanda, French, English), and extract structured clinical data safely and efficiently.
 
 The system is built to prioritize **clinical safety, reliability, and cost-efficiency**, ensuring it can scale across hundreds of facilities without compromising patient care.
@@ -39,7 +49,7 @@ The system is fully containerized using Docker Compose.
 
 The system implements a production-grade **CI/CD Pipeline** via GitHub Actions to ensure stability, safety, and performance.
 
-### 🛡️ Automated Quality Assurance
+### Automated Quality Assurance
 - **Backend Pipeline**: 
   - Automated unit and integration testing via **Pytest**.
   - Verification of the **Clinical Quality Gate** logic and database models.
