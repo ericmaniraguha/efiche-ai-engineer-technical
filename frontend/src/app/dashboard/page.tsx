@@ -201,10 +201,10 @@ export default function ReportsDashboard() {
               <div className="pane" style={{ flex: 1, borderRight: "1px solid #e2e8f0", padding: "1.5rem", background: "#fcfcfc" }}>
                 <h5 style={{ fontSize: "0.8rem", fontWeight: "800", color: "#64748b", marginBottom: "1rem", textTransform: "uppercase" }}>🎙️ Clinical Audio Transcript</h5>
                 <div style={{ background: "#fff", padding: "1.25rem", borderRadius: "0.75rem", border: "1px solid #e2e8f0", lineHeight: "1.6", color: "#334155", fontStyle: "italic" }}>
-                  &quot;{selectedConsultation.raw_transcript || "Transcript not available."}&quot;
+                  &quot;{("raw_transcript" in selectedConsultation && selectedConsultation.raw_transcript) || "Transcript not available."}&quot;
                 </div>
 
-                {(selectedConsultation.clinical_data?.ai_verification?.dangerous_flags?.length ?? 0) > 0 && (
+                {("clinical_data" in selectedConsultation && (selectedConsultation.clinical_data?.ai_verification?.dangerous_flags?.length ?? 0) > 0) && (
                   <div style={{ marginTop: "1.5rem", background: "#fef2f2", padding: "1.25rem", borderRadius: "0.75rem", border: "1px solid #fecaca" }}>
                     <h5 style={{ fontSize: "0.8rem", fontWeight: "900", color: "#b91c1c", marginBottom: "0.5rem" }}>⚠️ AI SAFETY ALERTS</h5>
                     <ul style={{ margin: 0, paddingLeft: "1.25rem", fontSize: "0.9rem", color: "#991b1b" }}>
