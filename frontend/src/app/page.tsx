@@ -279,11 +279,16 @@ export default function Home() {
               <div style={{ background: "#f8fafc", padding: "1.5rem", borderRadius: "1rem", border: "1px solid #e2e8f0" }}>
                 <p style={{ fontSize: "0.85rem", fontWeight: "700", color: "#64748b", marginBottom: "0.5rem" }}>MEDICATIONS</p>
                 <ul style={{ listStyle: "none", padding: 0 }}>
-                  {activeData?.medications?.map((m: string, i: number) => (
-                    <li key={i} style={{ fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <span style={{ color: "#10b981" }}>&bull;</span> {m}
-                    </li>
-                  )) || <li>None recorded</li>}
+                  {(() => {
+                    const meds = activeData?.medications;
+                    if (!meds) return <li>None recorded</li>;
+                    const medsArray = Array.isArray(meds) ? meds : [meds];
+                    return medsArray.map((m, i) => (
+                      <li key={i} style={{ fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span style={{ color: "#10b981" }}>&bull;</span> {m}
+                      </li>
+                    ));
+                  })()}
                 </ul>
               </div>
             </div>
