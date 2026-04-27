@@ -6,26 +6,26 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
     
-    # Secrets
-    SECRET_KEY: str
-    OPENAI_API_KEY: Optional[str] = None
-    
     # Database
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    POSTGRES_HOST: str
-    POSTGRES_PORT: str
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_PASSWORD: str = "password"
+    POSTGRES_DB: str = "efiche_db"
+    POSTGRES_HOST: str = "db"
+    POSTGRES_PORT: str = "5432"
 
     @property
     def DATABASE_URL(self) -> str:
         return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
     
     # Redis
-    REDIS_URL: str
+    REDIS_URL: str = "redis://redis:6379/0"
+    
+    # Secrets
+    SECRET_KEY: str = "dev_secret_key_change_me_in_production"
+    OPENAI_API_KEY: Optional[str] = None
     
     # Cost Limits
-    MONTHLY_COST_LIMIT: float
+    MONTHLY_COST_LIMIT: float = 100.0
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
