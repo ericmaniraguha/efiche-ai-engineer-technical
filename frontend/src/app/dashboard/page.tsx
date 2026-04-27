@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { MOCK_CONSULTATIONS } from "../mockData";
+import { MOCK_CONSULTATIONS as MOCK_RAW } from "../mockData";
 import { Consultation, EditData } from "../types";
+
+const MOCK_CONSULTATIONS = MOCK_RAW as Consultation[];
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
